@@ -15,7 +15,9 @@ SCRIPTS_DIR=./scripts/
 
 TESTDATA_DIR=./testdata
 CGI_FILE=$(TESTDATA_DIR)/something.go
-CGI_BIN=$(TESTDATA_DIR)/something
+BAD_CGI_FILE=$(TESTDATA_DIR)/otherthing.go
+CGI_BIN=$(BUILD_DIR)/something
+BAD_CGI_BIN=$(BUILD_DIR)/otherthing
 
 
 .PHONY: build # - Creates the binary under the build/ directory
@@ -29,6 +31,7 @@ buildplugin:
 .PHONY: buildcgi # - Builds the cgi bin for tests
 buildcgi:
 	$(GOBUILD) -o $(CGI_BIN) $(CGI_FILE)
+	$(GOBUILD) -o $(BAD_CGI_BIN) $(BAD_CGI_FILE)
 
 .PHONY: test # - Run all tests
 test: buildcgi

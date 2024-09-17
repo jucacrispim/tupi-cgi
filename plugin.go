@@ -71,7 +71,7 @@ func Serve(w http.ResponseWriter, r *http.Request, conf *map[string]any) {
 		return
 	}
 	var rawBody []byte = nil
-	if r.ContentLength > 0 {
+	if r.ContentLength > 0 && r.Body != nil {
 		defer r.Body.Close()
 		rawBody, err = io.ReadAll(r.Body)
 		if err != nil {
@@ -87,11 +87,11 @@ func Serve(w http.ResponseWriter, r *http.Request, conf *map[string]any) {
 	var headers *map[string]string
 	var body *[]byte
 	headers, body, err = parseCgiResponse(output)
-	h := (*headers)
-	if h == nil {
+	if headers == nil {
 		http.Error(w, INTERNAL_SERVER_ERROR_MSG, http.StatusInternalServerError)
 		return
 	}
+	h := (*headers)
 	sts, exits := h["Status"]
 	if !exits {
 		http.Error(w, INTERNAL_SERVER_ERROR_MSG, http.StatusInternalServerError)

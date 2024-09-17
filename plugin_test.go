@@ -18,6 +18,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -25,6 +26,12 @@ import (
 	"reflect"
 	"testing"
 )
+
+type ErrBody int
+
+func (ErrBody) Read(p []byte) (int, error) {
+	return 0, errors.New("some error")
+}
 
 func TestInit_BadConfs(t *testing.T) {
 	var tests = []struct {
@@ -65,7 +72,7 @@ func TestInit(t *testing.T) {
 	var tests = []struct {
 		conf map[string]any
 	}{
-		{map[string]any{"CGI_DIR": "./testdata"}},
+		{map[string]any{"CGI_DIR": "./build"}},
 	}
 
 	for _, test := range tests {
@@ -98,7 +105,7 @@ func TestGetMetaVars(t *testing.T) {
 				"REQUEST_METHOD":    "GET",
 				"SERVER_NAME":       "",
 				"SERVER_PORT":       "80",
-				"SCRIPT_NAME":       "./testdata/something",
+				"SCRIPT_NAME":       "./build/something",
 				"PATH_INFO":         "",
 				"PATH_TRANSLATED":   "",
 				"CONTENT_LENGTH":    "0",
@@ -124,7 +131,7 @@ func TestGetMetaVars(t *testing.T) {
 				"SERVER_PORT":       "80",
 				"SCRIPT_NAME":       "",
 				"PATH_INFO":         "/bad.cgi",
-				"PATH_TRANSLATED":   "./testdata/bad.cgi",
+				"PATH_TRANSLATED":   "./build/bad.cgi",
 				"CONTENT_LENGTH":    "0",
 				"GATEWAY_INTERFACE": "CGI/1.1",
 				"SERVER_PROTOCOL":   "HTTP/1.1",
@@ -146,9 +153,9 @@ func TestGetMetaVars(t *testing.T) {
 				"REQUEST_METHOD":    "GET",
 				"SERVER_NAME":       "",
 				"SERVER_PORT":       "443",
-				"SCRIPT_NAME":       "./testdata/something",
+				"SCRIPT_NAME":       "./build/something",
 				"PATH_INFO":         "/the/path",
-				"PATH_TRANSLATED":   "./testdata/the/path",
+				"PATH_TRANSLATED":   "./build/the/path",
 				"CONTENT_LENGTH":    "0",
 				"GATEWAY_INTERFACE": "CGI/1.1",
 				"SERVER_PROTOCOL":   "HTTP/1.1",
@@ -170,7 +177,7 @@ func TestGetMetaVars(t *testing.T) {
 				"REQUEST_METHOD":    "GET",
 				"SERVER_NAME":       "",
 				"SERVER_PORT":       "443",
-				"SCRIPT_NAME":       "./testdata/something",
+				"SCRIPT_NAME":       "./build/something",
 				"PATH_INFO":         "",
 				"PATH_TRANSLATED":   "",
 				"CONTENT_LENGTH":    "0",
@@ -194,7 +201,7 @@ func TestGetMetaVars(t *testing.T) {
 				"REQUEST_METHOD":    "GET",
 				"SERVER_NAME":       "localhost",
 				"SERVER_PORT":       "1234",
-				"SCRIPT_NAME":       "./testdata/something",
+				"SCRIPT_NAME":       "./build/something",
 				"PATH_INFO":         "",
 				"PATH_TRANSLATED":   "",
 				"CONTENT_LENGTH":    "0",
@@ -217,7 +224,7 @@ func TestGetMetaVars(t *testing.T) {
 		},
 	}
 
-	cgiDir := "./testdata"
+	cgiDir := "./build"
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			meta, err := getMetaVars(test.r, cgiDir)
@@ -327,9 +334,120 @@ func TestServe(t *testing.T) {
 				}
 			},
 		},
+		{
+			"post request",
+			func() *http.Request {
+				r, _ := http.NewRequest("POST", "/something",
+					bytes.NewBuffer([]byte("the post body")))
+				r.URL.Scheme = "http"
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusOK {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+				b := string(w.Body.Bytes())
+				if b != "the post body" {
+					t.Fatalf("Invalid body %s", b)
+				}
+			},
+		},
+		{
+			"put request",
+			func() *http.Request {
+				r, _ := http.NewRequest("PUT", "/something",
+					bytes.NewBuffer([]byte("the post body")))
+				r.URL.Scheme = "http"
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusMethodNotAllowed {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
+		{
+			"bad metavars",
+			func() *http.Request {
+				r, _ := http.NewRequest("POST", "/something",
+					bytes.NewBuffer([]byte("the post body")))
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusInternalServerError {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
+		{
+			"bad body",
+			func() *http.Request {
+				r, _ := http.NewRequest("POST", "/something", ErrBody(0))
+				r.URL.Scheme = "http"
+				r.ContentLength = 100
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusBadRequest {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
+		{
+			"cgi error",
+			func() *http.Request {
+				r, _ := http.NewRequest("GET", "/otherthing?error=1", nil)
+				r.URL.Scheme = "http"
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusInternalServerError {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
+		{
+			"cgi response without headers",
+			func() *http.Request {
+				r, _ := http.NewRequest("GET", "/otherthing?noheader=1", nil)
+				r.URL.Scheme = "http"
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusInternalServerError {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
+		{
+			"cgi response without status",
+			func() *http.Request {
+				r, _ := http.NewRequest("GET", "/otherthing", nil)
+				r.URL.Scheme = "http"
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusInternalServerError {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
+		{
+			"cgi response with bad status",
+			func() *http.Request {
+				r, _ := http.NewRequest("GET", "/otherthing?status=bla", nil)
+				r.URL.Scheme = "http"
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusInternalServerError {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
 	}
 
-	conf := map[string]any{"CGI_DIR": "./testdata"}
+	conf := map[string]any{"CGI_DIR": "./build"}
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
