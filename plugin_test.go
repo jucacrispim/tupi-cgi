@@ -445,6 +445,19 @@ func TestServe(t *testing.T) {
 				}
 			},
 		},
+		{
+			"cgi script not found",
+			func() *http.Request {
+				r, _ := http.NewRequest("GET", "/missing", nil)
+				r.URL.Scheme = "http"
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusNotFound {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
 	}
 
 	conf := map[string]any{"CGI_DIR": "./build"}

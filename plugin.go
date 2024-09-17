@@ -65,9 +65,12 @@ func Serve(w http.ResponseWriter, r *http.Request, conf *map[string]any) {
 	cgiDir, _ := d.(string)
 
 	m, err := getMetaVars(r, cgiDir)
-
 	if err != nil {
 		http.Error(w, INTERNAL_SERVER_ERROR_MSG, 500)
+		return
+	}
+	if m["SCRIPT_NAME"] == "" {
+		http.Error(w, "NOT FOUND", http.StatusNotFound)
 		return
 	}
 	var rawBody []byte = nil
