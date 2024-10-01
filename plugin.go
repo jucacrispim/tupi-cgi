@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -66,6 +67,7 @@ func Serve(w http.ResponseWriter, r *http.Request, conf *map[string]any) {
 
 	m, err := getMetaVars(r, cgiDir)
 	if err != nil {
+		log.Printf(err.Error())
 		http.Error(w, INTERNAL_SERVER_ERROR_MSG, 500)
 		return
 	}
@@ -84,6 +86,7 @@ func Serve(w http.ResponseWriter, r *http.Request, conf *map[string]any) {
 	}
 	output, err := execCmd(&m, &rawBody)
 	if err != nil {
+		log.Println(err.Error())
 		http.Error(w, INTERNAL_SERVER_ERROR_MSG, http.StatusInternalServerError)
 		return
 	}
