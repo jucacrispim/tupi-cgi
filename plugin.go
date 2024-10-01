@@ -36,7 +36,6 @@ var MissingConfigError = errors.New("[tupi-cgi] No config")
 var NoCgiDirError = errors.New("[tupi-cgi] CGI_DIR missing from config")
 var BadCgiDirError = errors.New("[tupi-cgi] CGI_DIR wrong config value")
 var UnknownSchemeError = errors.New("[tupi-cgi] Unknown scheme")
-var ConfusionError = errors.New("[tupi-cgi] Im'm confused")
 var InvalidCgiResponse = errors.New("[tupi-cgi] Invalid cgi response")
 
 func Init(domain string, conf *map[string]any) error {
@@ -215,23 +214,15 @@ func getDomainForRequest(req *http.Request) string {
 
 func getPortForRequest(r *http.Request) (int, error) {
 	hostParts := strings.Split(r.Host, ":")
-	partsLen := len(hostParts)
-	if partsLen > 2 {
-		return 0, ConfusionError
-	}
 	if len(hostParts) == 2 {
 		return strconv.Atoi(hostParts[1])
 	}
 
-	sc := r.URL.Scheme
-	switch sc {
-	case "http":
+	tls := r.TLS
+	if tls == nil {
 		return 80, nil
-
-	case "https":
-		return 443, nil
 	}
-	return 0, UnknownSchemeError
+	return 443, nil
 }
 
 func getIp(req *http.Request) string {

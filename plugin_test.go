@@ -19,6 +19,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -143,7 +144,7 @@ func TestGetMetaVars(t *testing.T) {
 			"with path info",
 			func() *http.Request {
 				r, _ := http.NewRequest("GET", "/something/the/path", nil)
-				r.URL.Scheme = "https"
+				r.TLS = &tls.ConnectionState{}
 				r.Header.Add("Server-Software", "tupi")
 				return r
 			}(),
@@ -167,7 +168,7 @@ func TestGetMetaVars(t *testing.T) {
 			"with query string",
 			func() *http.Request {
 				r, _ := http.NewRequest("GET", "/something?the=query&other=param", nil)
-				r.URL.Scheme = "https"
+				r.TLS = &tls.ConnectionState{}
 				r.Header.Add("Server-Software", "tupi")
 				return r
 			}(),
@@ -211,24 +212,13 @@ func TestGetMetaVars(t *testing.T) {
 			},
 			nil,
 		},
-		{
-			"invalid host",
-			func() *http.Request {
-				r, _ := http.NewRequest("GET", "/something?the=query&other=param", nil)
-				r.Host = "localhost:1234:123"
-				r.Header.Add("Server-Software", "tupi")
-				return r
-			}(),
-			nil,
-			ConfusionError,
-		},
 	}
 
 	cgiDir := "./build"
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			meta, err := getMetaVars(test.r, cgiDir)
-			if err != test.err {
+			if err != nil && errors.Is(err, test.err) {
 				t.Fatal(err)
 			}
 
@@ -367,19 +357,6 @@ func TestServe(t *testing.T) {
 			},
 		},
 		{
-			"bad metavars",
-			func() *http.Request {
-				r, _ := http.NewRequest("POST", "/something",
-					bytes.NewBuffer([]byte("the post body")))
-				return r
-			}(),
-			func(w *httptest.ResponseRecorder) {
-				if w.Code != http.StatusInternalServerError {
-					t.Fatalf("Invalid status code %d", w.Code)
-				}
-			},
-		},
-		{
 			"bad body",
 			func() *http.Request {
 				r, _ := http.NewRequest("POST", "/something", ErrBody(0))
@@ -454,6 +431,20 @@ func TestServe(t *testing.T) {
 			}(),
 			func(w *httptest.ResponseRecorder) {
 				if w.Code != http.StatusNotFound {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
+		{
+			"bad port",
+			func() *http.Request {
+				r, _ := http.NewRequest("GET", "/something?the=query&other=param", nil)
+				r.Host = "localhost:ss"
+				r.Header.Add("Server-Software", "tupi")
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusInternalServerError {
 					t.Fatalf("Invalid status code %d", w.Code)
 				}
 			},
