@@ -246,8 +246,25 @@ func findScript(cgiDir string, path string) (string, string) {
 		pathInfo = "/" + strings.Join(pathparts[i:], string(os.PathSeparator))
 		break
 	}
+	if containsDotDot(scriptPath) {
+		return "", ""
+	}
 	if scriptPath == cgiDir {
 		scriptPath = ""
 	}
 	return scriptPath, pathInfo
+}
+
+func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
+
+func containsDotDot(v string) bool {
+	if !strings.Contains(v, "..") {
+		return false
+	}
+	for _, ent := range strings.FieldsFunc(v, isSlashRune) {
+		if ent == ".." {
+			return true
+		}
+	}
+	return false // notest
 }

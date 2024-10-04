@@ -449,6 +449,19 @@ func TestServe(t *testing.T) {
 				}
 			},
 		},
+		{
+			"containing dotdot",
+			func() *http.Request {
+				r, _ := http.NewRequest("GET", "../../../../../bin/ls", nil)
+				r.Header.Add("Server-Software", "tupi")
+				return r
+			}(),
+			func(w *httptest.ResponseRecorder) {
+				if w.Code != http.StatusNotFound {
+					t.Fatalf("Invalid status code %d", w.Code)
+				}
+			},
+		},
 	}
 
 	conf := map[string]any{"CGI_DIR": "./build"}
