@@ -19,7 +19,7 @@ steps:
     command: go install -trimpath github.com/jucacrispim/tupi/cmd/tupi@latest
 
   - name: Build
-    command: make build
+    command: make buildplugin
 
   - name: Unit tests & coverage
     command: make coverage
