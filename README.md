@@ -26,7 +26,7 @@ To use the plugin with tupi, in  your config file put:
 ```toml
 ...
 ServePlugin = "/path/to/cgi_plugin.so"
-AuthPluginConf = {
+ServePluginConf = {
     "CGI_DIR" = "/path/to/somewhere"
 }
 ...
