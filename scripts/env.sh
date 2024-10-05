@@ -11,6 +11,7 @@ install_courtney(){
 
 setup_env(){
     install_courtney
+    make buildcgi
 }
 
 setup_docs_env(){
