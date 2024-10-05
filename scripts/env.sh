@@ -5,7 +5,7 @@ DOCS_VENV_DIR="$VENV_DIR/tupi-gci-docs"
 install_courtney(){
     echo "installing courtney"
     go get golang.org/x/tools@v0.25.0
-    go get -u github.com/dave/courtney
+    go get github.com/dave/courtney
     go install github.com/dave/courtney
 }
 
