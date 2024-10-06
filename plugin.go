@@ -230,6 +230,10 @@ func getIp(req *http.Request) string {
 }
 
 func findScript(cgiDir string, path string) (string, string) {
+	if containsDotDot(path) {
+		return "", ""
+	}
+
 	pathparts := strings.Split(path, string(os.PathSeparator))
 	scriptPath := cgiDir
 	pathInfo := ""
@@ -246,9 +250,6 @@ func findScript(cgiDir string, path string) (string, string) {
 		pathInfo = "/" + strings.Join(pathparts[i:], string(os.PathSeparator))
 		break
 	}
-	// if containsDotDot(scriptPath) {
-	// 	return "", ""
-	// }
 	if scriptPath == cgiDir {
 		scriptPath = ""
 	}
