@@ -1,6 +1,7 @@
 package functionaltests
 
 import (
+	"io"
 	"net/http"
 	"os/exec"
 	"testing"
@@ -33,7 +34,9 @@ func TestTupi(t *testing.T) {
 			}
 
 			if resp.StatusCode != test.status {
-				t.Fatalf("bad status %d", resp.StatusCode)
+				defer resp.Body.Close()
+				b, _ := io.ReadAll(resp.Body)
+				t.Fatalf("bad status %d\n%s", resp.StatusCode, string(b))
 			}
 
 		})
