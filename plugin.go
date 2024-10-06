@@ -246,9 +246,9 @@ func findScript(cgiDir string, path string) (string, string) {
 		pathInfo = "/" + strings.Join(pathparts[i:], string(os.PathSeparator))
 		break
 	}
-	if containsDotDot(scriptPath) {
-		return "", ""
-	}
+	// if containsDotDot(scriptPath) {
+	// 	return "", ""
+	// }
 	if scriptPath == cgiDir {
 		scriptPath = ""
 	}

@@ -42,7 +42,7 @@ func TestTupi(t *testing.T) {
 					fl += f.Name() + "\n"
 				}
 				b, _ := io.ReadAll(resp.Body)
-				t.Fatalf("bad status %d\n%s", resp.StatusCode, string(b))
+				t.Fatalf("bad status %d\nFiles %s", resp.StatusCode, string(b))
 			}
 
 		})
