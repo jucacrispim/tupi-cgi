@@ -3,6 +3,7 @@ package functionaltests
 import (
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -35,6 +36,11 @@ func TestTupi(t *testing.T) {
 
 			if resp.StatusCode != test.status {
 				defer resp.Body.Close()
+				files, _ := os.ReadDir("./../build")
+				fl := ""
+				for _, f := range files {
+					fl += f.Name() + "\n"
+				}
 				b, _ := io.ReadAll(resp.Body)
 				t.Fatalf("bad status %d\n%s", resp.StatusCode, string(b))
 			}
